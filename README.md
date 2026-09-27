@@ -40,18 +40,14 @@
    ```
    *Edit `.env` to configure your database connection (MySQL or SQLite).*
 
-4. **Run Database Migrations**:
+4. **Run Database Migrations & Seeders**:
    ```bash
-   php artisan migrate
+   php artisan migrate --seed
    ```
+   *Seeds plans, realistic instructors, courses, students, accounting periods, and financial ledger data.*  
+   *Pre-configured Admin Login:* `admin@lms.test` / `password`
 
-5. **Create a Filament Admin User** *(Optional for UI access)*:
-   ```bash
-   php artisan make:filament-user
-   ```
-   *Follow the interactive prompt to set name, email, and password.*
-
-6. **Start the Local Development Server**:
+5. **Start the Local Development Server**:
    ```bash
    php artisan serve
    ```
@@ -123,3 +119,25 @@ php artisan payouts:reconcile
    * If the payment gateway times out after moving money, the system locks funds in escrow (`status = IN_DOUBT`, ledger `status = LOCKED`) and refuses to retry until `payouts:reconcile` queries the gateway status.
 8. **Single Currency Model**:
    * All calculations operate in a single currency (USD cents). Multi-currency support can be layered on via foreign exchange snapshot tables.
+
+---
+
+## 📦 Seeders & Model Factories
+
+To support immediate local evaluation and rigorous test fixture generation, comprehensive factories and seeders are provided:
+
+### Model Factories (`database/factories`)
+* `UserFactory`: States for `instructor()` (with generated IBAN) and `student()`.
+* `PlanFactory`: States for `monthly()`, `quarterly()`, `annual()`, and `inactive()`.
+* `CourseFactory`: Generates realistic course titles associated with instructors.
+* `CourseEngagementFactory`: Simulates student watch time in seconds.
+* `SubscriptionFactory`: States for `active()`, `cancelled()`, `refunded()`, and `expired()`.
+* `SubscriptionPeriodFactory`: States for `pending()`, `open()`, `allocated()`, and `cancelled()`.
+* `LedgerEntryFactory`: States for `payable()`, `locked()`, `settled()`, `credit()`, `debit()`, and `clawback()`.
+* `PayoutFactory`: States for `pending()`, `processing()`, `paid()`, `inDoubt()`, and `failed()`.
+
+### Seeders (`database/seeders`)
+* `PlanSeeder`: Seeds canonical Monthly ($29), Quarterly ($79), and Annual ($249) subscription tiers.
+* `InstructorSeeder`: Seeds 4 industry instructors with courses and valid banking IBANs.
+* `DatabaseSeeder`: Orchestrates the complete LMS ecosystem with admin user (`admin@lms.test` / `password`), active students, multi-month accounting periods, immutable credit/debit ledger entries, and historical payouts illustrating `PAID`, `IN_DOUBT`, and `FAILED` states.
+
