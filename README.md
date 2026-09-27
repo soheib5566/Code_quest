@@ -1,58 +1,125 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Instructor Revenue Ledger
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+> **The Financial Core of an Online Course Platform (LMS)**  
+> Built with Laravel 12, Filament v5, and MySQL/SQLite. Engineered for absolute financial correctness, mathematical conservation of money, idempotency under high concurrency, and resilience against remote payment gateway failures at scale (500,000+ active subscriptions).
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 🌟 Quick Links
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+* 📖 **[Architecture & Design Document](docs/ARCHITECTURE.md)**: Deep dive into the immutable double-entry ledger, Hare-Niemeyer penny rounding, two-tier concurrency locks, Byzantine gateway timeouts, and 500k scaling strategies.
+* 🤖 **[AI Usage & Architectural Ownership](docs/AI_USAGE.md)**: Human-AI collaboration breakdown, architectural decisions made, and the **Senior Bonus** (handling mid-term plan upgrades).
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## 🚀 Setup Instructions
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### Prerequisites
+* **PHP**: `>= 8.3` (with `pdo`, `mbstring`, `bcmath`, `curl`)
+* **Composer**: `>= 2.0`
+* **Database**: MySQL 8.0+ or SQLite
+* **Node.js**: `>= 18.x` (for building frontend assets if modifying Filament assets)
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### Installation Steps
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/soheib5566/Code_quest.git
+   cd Code_quest
+   ```
 
-## Agentic Development
+2. **Install PHP dependencies**:
+   ```bash
+   composer install
+   ```
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+3. **Configure Environment**:
+   ```bash
+   cp .env.example .env
+   php artisan key:generate
+   ```
+   *Edit `.env` to configure your database connection (MySQL or SQLite).*
 
+4. **Run Database Migrations**:
+   ```bash
+   php artisan migrate
+   ```
+
+5. **Create a Filament Admin User** *(Optional for UI access)*:
+   ```bash
+   php artisan make:filament-user
+   ```
+   *Follow the interactive prompt to set name, email, and password.*
+
+6. **Start the Local Development Server**:
+   ```bash
+   php artisan serve
+   ```
+   *The Filament administrative dashboard is available at: `http://localhost:8000/admin`*
+
+---
+
+## 🧪 How to Run Tests
+
+The test suite contains **20 comprehensive unit and feature tests with 72 assertions** verifying financial precision, concurrency defense, retries, and timeout safety.
+
+### Run All Tests
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+php artisan test
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+### Run Specific Test Suites
 
-## Contributing
+| Test Suite | File | What It Verifies |
+| :--- | :--- | :--- |
+| **Penny Rounding & Split Math** | `tests/Unit/RevenueSplitCalculatorTest.php` | Hare-Niemeyer allocation, largest remainder distribution, deterministic tie-breaking, zero-consumption guards. |
+| **Mock Gateway Scenarios** | `tests/Unit/MockPaymentGatewayTest.php` | Gateway outcomes: Success, Hard Failure (400), and Timeout After Success (`IN_DOUBT`), plus status queries. |
+| **Revenue Allocation Service** | `tests/Feature/RevenueAllocationServiceTest.php` | 30% platform cut, immutable credit ledger entries, period finalization, breakage handling. |
+| **Payout Processing & Concurrency** | `tests/Feature/ProcessInstructorPayoutJobTest.php` | Pessimistic DB locking, idempotency keys, zero double-payouts on overlapping runs, queue retries. |
+| **Reconciliation Engine** | `tests/Feature/PayoutReconciliationTest.php` | Self-healing resolution of `IN_DOUBT` payouts via `payouts:reconcile`. |
+| **Subscription Refunds & Clawbacks** | `tests/Feature/SubscriptionRefundTest.php` | Mid-term refund handling, cancelling unearned periods without clawback, and debit ledger clawbacks. |
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```bash
+# Example: Run only payout job and concurrency tests
+php artisan test tests/Feature/ProcessInstructorPayoutJobTest.php
 
-## Code of Conduct
+# Example: Run only the penny split calculator tests
+php artisan test tests/Unit/RevenueSplitCalculatorTest.php
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+---
 
-## Security Vulnerabilities
+## ⚙️ Core Artisan Commands
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### 1. Process Payouts (`payouts:process`)
+Scans all instructors with payable balances, groups them into batches of 250, and dispatches background payout jobs:
+```bash
+php artisan payouts:process --period=2026-03
+```
 
-## License
+### 2. Reconcile In-Doubt Payouts (`payouts:reconcile`)
+Scans timed-out or in-doubt transactions and queries the payment gateway to settle or fail them:
+```bash
+php artisan payouts:reconcile
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+---
+
+## 🧠 Assumptions Made
+
+1. **Integer Cents Representation (`BIGINT`)**:
+   * All monetary figures are stored as integer cents to prevent IEEE 754 floating-point rounding errors (`$100.00` is stored as `10000`).
+2. **Accrual Revenue Recognition (`subscription_periods`)**:
+   * Upfront multi-month subscriptions (Monthly = 1 month, Quarterly = 3 months, Annual = 12 months) are partitioned into monthly accounting periods. Instructors earn their share month-by-month as the service is delivered.
+3. **Platform Cut & Instructor Pool**:
+   * The platform takes a default 30% cut; the remaining 70% constitutes the net instructor pool for that accounting period.
+4. **Proportional Consumption Split**:
+   * A student's monthly pool is distributed to instructors strictly proportionally based on `seconds_watched` during that accounting period.
+5. **The Penny Rounding Method (Hare-Niemeyer)**:
+   * Uneven fractional cents are distributed deterministically using the **Largest Remainder Method** (tie-broken by `instructor_id` ascending). $\sum \text{allocated} \equiv \text{pool}$ to the exact penny. No money is ever lost or created.
+6. **Zero-Consumption Breakage**:
+   * If a student subscribes but watches 0 seconds during a month, the pool is retained by the platform as unconsumed breakage/deferred revenue, and zero artificial instructor earnings are created.
+7. **Gateway Timeout State (`IN_DOUBT`)**:
+   * If the payment gateway times out after moving money, the system locks funds in escrow (`status = IN_DOUBT`, ledger `status = LOCKED`) and refuses to retry until `payouts:reconcile` queries the gateway status.
+8. **Single Currency Model**:
+   * All calculations operate in a single currency (USD cents). Multi-currency support can be layered on via foreign exchange snapshot tables.
