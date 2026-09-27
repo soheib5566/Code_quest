@@ -63,6 +63,15 @@ flowchart TD
 * **Decision**: Database transactions are never kept open while waiting for remote HTTP banking APIs.
 * **Why**: An HTTP timeout to a payment gateway can take 15 to 60 seconds. Keeping a database transaction open for 60 seconds exhausts the database connection pool, holds locks on ledger rows, and causes cascading timeouts across the entire platform. Instead, we lock rows and set `status = LOCKED` inside a 5ms transaction, commit, execute the HTTP call, and then record the outcome in a second short transaction.
 
+### E. Core Database Tables & Schema Overview
+
+| Table | Key Columns & Types | Constraints & Indexes | Financial Purpose |
+| :--- | :--- | :--- | :--- |
+| **`ledger_entries`** | `instructor_id` (FK)<br>`type` (enum: earning, refund_clawback, payout)<br>`direction` (enum: credit, debit)<br>`amount_in_cents` (BIGINT)<br>`status` (enum: payable, locked, settled, cancelled)<br>`source_type`, `source_id` (morphs)<br>`payout_id` (nullable FK)<br>`idempotency_key` (string, nullable) | • `UNIQUE(idempotency_key)`<br>• **Covering Index:** `(instructor_id, status, amount_in_cents)` | **The Core Financial Ledger**: Append-only log of all financial movements. Derived balance source. |
+| **`payouts`** | `instructor_id` (FK)<br>`amount_in_cents` (BIGINT)<br>`status` (enum: pending, processing, paid, in_doubt, failed)<br>`idempotency_key` (string)<br>`external_reference` (string, nullable)<br>`failure_reason` (text, nullable)<br>`paid_at`, `reconciled_at` (timestamps) | • `UNIQUE(idempotency_key)`<br>• Index on `(status)` | **Payout Batches**: Manages gateway transfers, idempotency tokens, and timeout/failure lifecycles. |
+| **`subscription_periods`** | `subscription_id` (FK)<br>`period_number` (int)<br>`gross_amount_in_cents` (BIGINT)<br>`platform_amount_in_cents` (BIGINT)<br>`instructor_pool_in_cents` (BIGINT)<br>`status` (enum: pending, open, allocated, cancelled)<br>`start_at`, `end_at`, `allocated_at` | • `UNIQUE(subscription_id, period_number)` | **Monthly Accrual Buckets**: Isolates upfront subscription revenue into distinct monthly accounting periods. |
+| **`course_engagements`** | `subscription_period_id` (FK)<br>`student_id` (FK, nullable)<br>`instructor_id` (FK)<br>`course_id` (FK)<br>`seconds_watched` (BIGINT) | • Index on `(subscription_period_id)`<br>• Index on `(instructor_id)` | **Consumption Metric**: Tracks watch duration used to calculate proportional revenue split shares. |
+
 ---
 
 ## 3. Revenue Allocation Strategy
