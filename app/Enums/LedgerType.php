@@ -6,5 +6,5 @@ enum LedgerType: string
 {
     case EARNING = 'earning';
     case PAYOUT = 'payout';
-    case REFUND = 'refund';
+    case REFUND_CLAWBACK  = 'refund_clawback';
 }
